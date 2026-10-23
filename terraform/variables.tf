@@ -46,7 +46,13 @@ variable "monthly_budget_usd" {
 variable "function_plan_sku" {
   description = "SKU del plan de la Function App. Y1 = consumo (casi gratis en reposo)."
   type        = string
-  default     = "B1"
+  default     = "Y1"
+}
+
+variable "function_location" {
+  description = "Región del plan y de la Function App. Vacío = la del grupo de recursos. Cámbiala si la suscripción no tiene cuota del plan en esa región."
+  type        = string
+  default     = "centralus"
 }
 
 variable "daily_schedule" {
