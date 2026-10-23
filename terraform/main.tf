@@ -14,6 +14,9 @@ locals {
   location = data.azurerm_resource_group.main.location
   rg_name  = data.azurerm_resource_group.main.name
 
+    # El plan y la Function pueden vivir en otra región si la cuota es 0 en la del grupo.
+  function_location = var.function_location != "" ? var.function_location : local.location
+
   names = {
     key_vault = "kv-${var.project}-${local.suffix}"
     storage   = "st${var.project}${local.suffix}"
@@ -97,7 +100,7 @@ resource "azurerm_application_insights" "main" {
 resource "azurerm_service_plan" "bot" {
   name                = local.names.plan
   resource_group_name = local.rg_name
-  location            = local.location
+  location            = local.function_location
   os_type             = "Linux"
   sku_name            = var.function_plan_sku
   tags                = local.tags
@@ -106,7 +109,7 @@ resource "azurerm_service_plan" "bot" {
 resource "azurerm_linux_function_app" "bot" {
   name                = local.names.function
   resource_group_name = local.rg_name
-  location            = local.location
+  location            = local.function_location
   service_plan_id     = azurerm_service_plan.bot.id
 
   # El plan de consumo (Y1) exige acceso por clave para el contenido de la app.
