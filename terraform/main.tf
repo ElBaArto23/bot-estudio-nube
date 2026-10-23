@@ -121,6 +121,7 @@ resource "azurerm_linux_function_app" "bot" {
   }
 
   site_config {
+    always_on                              = var.function_plan_sku != "Y1"
     application_insights_connection_string = azurerm_application_insights.main.connection_string
     ftps_state                             = "Disabled"
     minimum_tls_version                    = "1.2"
