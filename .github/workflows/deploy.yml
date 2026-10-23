@@ -1,0 +1,176 @@
+name: Deploy
+
+# Tres etapas:
+#   plan  -> muestra qué va a cambiar (sin aprobación)
+#   apply -> espera tu aprobación (entorno "prod") y crea la infraestructura
+#   code  -> sube el código de la Function y comprueba que responde
+# Ejecútalo desde la rama main.
+on:
+  workflow_dispatch:
+
+# Deploy y Destroy comparten grupo: nunca corren a la vez.
+concurrency:
+  group: bot-estudio-infra
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  TFSTATE_RG: ${{ vars.TFSTATE_RG }}
+  TFSTATE_SA: ${{ vars.TFSTATE_SA }}
+  TF_VAR_resource_group_name: ${{ vars.APP_RG }}
+  TF_VAR_owner_telegram_id: ${{ vars.OWNER_TELEGRAM_ID }}
+  TF_VAR_admin_object_id: ${{ vars.ADMIN_OBJECT_ID }}
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar que la configuración llegó
+        run: >
+          bash scripts/check-config.sh ARM_TENANT_ID ARM_SUBSCRIPTION_ID ARM_CLIENT_ID
+          TFSTATE_RG TFSTATE_SA TF_VAR_resource_group_name TF_VAR_owner_telegram_id
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - run: bash scripts/write-backend.sh
+
+      - name: Init y validate
+        working-directory: terraform
+        run: |
+          terraform init -input=false
+          terraform validate
+
+      - name: Plan
+        working-directory: terraform
+        run: terraform plan -input=false -no-color | tee "$RUNNER_TEMP/plan.txt"
+
+      - name: Resumen para quien aprueba
+        if: always()
+        run: |
+          {
+            echo '## Cambios que se aplicarán al aprobar'
+            echo '```text'
+            head -c 60000 "$RUNNER_TEMP/plan.txt" 2>/dev/null || echo "(sin salida)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Con "Required reviewers" en el entorno, el job espera tu aprobación aquí.
+    environment: prod
+    outputs:
+      app: ${{ steps.out.outputs.app }}
+      rg: ${{ steps.out.outputs.rg }}
+      host: ${{ steps.out.outputs.host }}
+      configure: ${{ steps.out.outputs.configure }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - run: bash scripts/write-backend.sh
+
+      - name: Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      # Se vuelve a planificar justo antes de aplicar. No se guarda el plan como
+      # artefacto porque puede contener valores sensibles (claves).
+      - name: Apply
+        working-directory: terraform
+        run: terraform apply -input=false -auto-approve
+
+      - name: Salidas
+        id: out
+        working-directory: terraform
+        run: |
+          {
+            echo "app=$(terraform output -raw function_app_name)"
+            echo "rg=$(terraform output -raw resource_group_name)"
+            echo "host=$(terraform output -raw function_app_hostname)"
+            echo "configure=$(terraform output -raw configure_command)"
+          } >> "$GITHUB_OUTPUT"
+
+  code:
+    needs: apply
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Empaquetar
+        run: |
+          cd app
+          zip -r ../app.zip . -x "tests/*" ".venv/*" ".pytest_cache/*" "*/__pycache__/*" \
+            "local.settings.json" "requirements-dev.txt" "pytest.ini"
+
+      # Compilación remota: Azure instala requirements.txt en el servidor.
+      - name: Desplegar el código
+        run: >
+          az functionapp deployment source config-zip
+          --resource-group "${{ needs.apply.outputs.rg }}"
+          --name "${{ needs.apply.outputs.app }}"
+          --src app.zip --build-remote true --timeout 600
+
+      - name: Comprobar que responde
+        env:
+          HOST: ${{ needs.apply.outputs.host }}
+        run: |
+          code=000
+          for i in $(seq 1 12); do
+            code="$(curl -s -o "$RUNNER_TEMP/health.json" -w '%{http_code}' --max-time 20 "https://${HOST}/api/health" || true)"
+            echo "intento $i: HTTP $code"
+            [ "$code" = "200" ] && break
+            sleep 15
+          done
+          cat "$RUNNER_TEMP/health.json" 2>/dev/null || true
+          echo
+          test "$code" = "200"
+
+      - name: Siguiente paso
+        env:
+          CONFIGURE: ${{ needs.apply.outputs.configure }}
+        run: |
+          {
+            echo '## Desplegado'
+            echo
+            echo 'Para terminar, ejecuta esto en Azure Cloud Shell (pide el token de BotFather, oculto):'
+            echo '```bash'
+            echo "$CONFIGURE"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

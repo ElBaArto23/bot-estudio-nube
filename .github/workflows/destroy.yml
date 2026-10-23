@@ -1,0 +1,76 @@
+name: Destroy
+
+# Borra todo lo que Terraform creó dentro del grupo de recursos. El grupo y el
+# estado de Terraform se conservan. Pide aprobación (entorno "prod").
+on:
+  workflow_dispatch:
+    inputs:
+      confirmar:
+        description: 'Escribe "destruir" para confirmar'
+        required: true
+
+concurrency:
+  group: bot-estudio-infra
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  TFSTATE_RG: ${{ vars.TFSTATE_RG }}
+  TFSTATE_SA: ${{ vars.TFSTATE_SA }}
+  TF_VAR_resource_group_name: ${{ vars.APP_RG }}
+  TF_VAR_owner_telegram_id: ${{ vars.OWNER_TELEGRAM_ID }}
+  TF_VAR_admin_object_id: ${{ vars.ADMIN_OBJECT_ID }}
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  destroy:
+    if: github.event.inputs.confirmar == 'destruir'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar que la configuración llegó
+        run: >
+          bash scripts/check-config.sh ARM_TENANT_ID ARM_SUBSCRIPTION_ID ARM_CLIENT_ID
+          TFSTATE_RG TFSTATE_SA TF_VAR_resource_group_name TF_VAR_owner_telegram_id
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - run: bash scripts/write-backend.sh
+
+      - name: Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Destroy
+        working-directory: terraform
+        run: terraform destroy -input=false -auto-approve
+
+      # Mismo hábito que en el proyecto anterior: no fiarse del "Destroy complete",
+      # comprobar el estado real en Azure.
+      - name: Verificar que el grupo quedó vacío
+        run: |
+          n="$(az resource list --resource-group "$TF_VAR_resource_group_name" --query 'length(@)' -o tsv)"
+          echo "Recursos que quedan en $TF_VAR_resource_group_name: $n"
+          if [ "$n" != "0" ]; then
+            az resource list --resource-group "$TF_VAR_resource_group_name" --query '[].{nombre:name,tipo:type}' -o table
+            echo "::error::Quedaron recursos fuera del estado de Terraform."
+            exit 1
+          fi

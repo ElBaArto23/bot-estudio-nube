@@ -1,0 +1,5 @@
+azure-functions>=1.20
+azure-data-tables>=12.5
+azure-identity>=1.17
+requests>=2.32
+tzdata

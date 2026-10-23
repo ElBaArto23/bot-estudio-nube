@@ -1,0 +1,9 @@
+# Copia este archivo a terraform.tfvars (está en .gitignore) para usar Terraform en local.
+# En GitHub Actions estos valores llegan desde las Variables del repositorio.
+
+owner_telegram_id = "123456789"   # tu id numérico de Telegram (@userinfobot)
+admin_object_id   = ""            # az ad signed-in-user show --query id -o tsv
+alert_email       = ""            # vacío = sin presupuesto
+
+# resource_group_name = "estudio-rg"
+# project             = "botestudio"

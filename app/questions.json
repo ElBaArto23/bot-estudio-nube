@@ -1,0 +1,98 @@
+[
+  {
+    "id": "tf-plan-apply",
+    "topic": "Terraform",
+    "question": "¿Qué diferencia hay entre `terraform plan` y `terraform apply`, y por qué un plan correcto no garantiza un apply correcto?",
+    "answer": "plan calcula y muestra los cambios sin ejecutarlos; apply los ejecuta. Un plan puede ser válido y el apply fallar porque cuotas, permisos o restricciones de la suscripción (por ejemplo, un tamaño de VM no permitido) solo se comprueban al crear el recurso."
+  },
+  {
+    "id": "tf-estado-remoto",
+    "topic": "Terraform",
+    "question": "¿Por qué el estado de Terraform debe ser remoto cuando se usa CI/CD?",
+    "answer": "Cada ejecución del pipeline empieza en una máquina limpia. Sin un estado compartido, Terraform no sabe qué existe ya (y destroy no sabría qué borrar). Además, el backend remoto aporta bloqueo para que dos ejecuciones no cambien la infraestructura a la vez."
+  },
+  {
+    "id": "tf-provider",
+    "topic": "Terraform",
+    "question": "¿Qué es un provider en Terraform?",
+    "answer": "Un plugin que sabe hablar con una plataforma concreta (azurerm para Azure, github para GitHub). Traduce los recursos que declaras en llamadas a la API de esa plataforma."
+  },
+  {
+    "id": "docker-imagen",
+    "topic": "Docker",
+    "question": "¿Qué diferencia hay entre una imagen y un contenedor?",
+    "answer": "La imagen es una plantilla de solo lectura con la aplicación y sus dependencias. El contenedor es un proceso en ejecución creado a partir de esa imagen. De una imagen puedes arrancar muchos contenedores."
+  },
+  {
+    "id": "k8s-clusterip-lb",
+    "topic": "Kubernetes",
+    "question": "¿Por qué el Service del backend suele ser ClusterIP y el del frontend LoadBalancer?",
+    "answer": "ClusterIP solo es alcanzable dentro del clúster, ideal para servicios internos como backend o Redis. LoadBalancer pide a la nube una IP pública, necesaria solo para el punto de entrada que usan los usuarios."
+  },
+  {
+    "id": "k8s-probes",
+    "topic": "Kubernetes",
+    "question": "¿Qué diferencia hay entre una readiness probe y una liveness probe?",
+    "answer": "Readiness decide si el pod puede recibir tráfico (si falla, se le quita del balanceo). Liveness decide si el contenedor sigue vivo (si falla, Kubernetes lo reinicia)."
+  },
+  {
+    "id": "env-compose-vs-k8s",
+    "topic": "Desarrollo",
+    "question": "Un servicio funcionaba en Docker Compose y entró en CrashLoopBackOff en Kubernetes por una variable de entorno. ¿Qué pasó?",
+    "answer": "Kubernetes inyecta variables de entorno por cada Service (por ejemplo REDIS_PORT=tcp://10.0.0.1:6379). Esa variable pisaba la que el código esperaba como número. Solución: fijar la variable explícitamente en el Deployment y leer siempre los logs con kubectl logs."
+  },
+  {
+    "id": "azure-identidad-administrada",
+    "topic": "Azure",
+    "question": "¿Qué ventaja tiene una identidad administrada frente a usar una contraseña o clave en el código?",
+    "answer": "Azure crea y rota la credencial por ti y tu código nunca la ve. Los permisos se dan con roles (RBAC), así que se pueden dar mínimos y retirar sin tocar el código."
+  },
+  {
+    "id": "azure-minimo-privilegio",
+    "topic": "Azure",
+    "question": "¿Qué significa el principio de mínimo privilegio y cómo se aplica al dar roles en Azure?",
+    "answer": "Dar a cada identidad solo los permisos que necesita y en el alcance más pequeño posible: un rol específico (por ejemplo, Key Vault Secrets User) sobre un recurso o grupo de recursos, no Contributor sobre toda la suscripción."
+  },
+  {
+    "id": "azure-kv-referencia",
+    "topic": "Azure",
+    "question": "¿Cómo lee una Azure Function un secreto de Key Vault sin guardarlo en el código ni en Terraform?",
+    "answer": "Con una referencia en la configuración de la app (@Microsoft.KeyVault(VaultName=...;SecretName=...)) y una identidad administrada con el rol Key Vault Secrets User. El valor real se guarda aparte, fuera del estado de Terraform."
+  },
+  {
+    "id": "azure-consumo",
+    "topic": "Azure",
+    "question": "¿Qué significa que una Function use plan de consumo y qué contrapartida tiene?",
+    "answer": "Pagas por ejecución y escala a cero: en reposo casi no cuesta. La contrapartida es el arranque en frío: la primera petición tras un tiempo sin uso tarda más."
+  },
+  {
+    "id": "gh-secrets-vars",
+    "topic": "GitHub Actions",
+    "question": "¿En qué se diferencian un Secret y una Variable de GitHub Actions?",
+    "answer": "Los secrets se guardan cifrados y se enmascaran en los logs (secrets.NOMBRE). Las variables son texto visible (vars.NOMBRE). Son espacios distintos: guardar algo en uno y leerlo del otro llega vacío."
+  },
+  {
+    "id": "gh-oidc",
+    "topic": "GitHub Actions",
+    "question": "¿Qué es la federación OIDC entre GitHub y Azure y qué ventaja tiene sobre un client secret?",
+    "answer": "GitHub emite un token de corta duración por ejecución y Entra ID lo acepta porque configuraste una confianza (repositorio, rama o entorno). No hay contraseña guardada que rotar ni que pueda filtrarse."
+  },
+  {
+    "id": "web-webhook",
+    "topic": "Desarrollo",
+    "question": "¿Qué diferencia hay entre webhook y polling, y por qué un bot en Functions usa webhook?",
+    "answer": "Con polling tu código pregunta cada poco si hay novedades; con webhook el servicio te llama cuando las hay. El webhook encaja con cómputo que se apaga cuando no hay trabajo, porque no necesitas un proceso encendido esperando."
+  },
+  {
+    "id": "dev-timeouts",
+    "topic": "Desarrollo",
+    "question": "¿Por qué se ponen timeouts a las llamadas a servicios externos?",
+    "answer": "Sin límite, una llamada colgada deja la ejecución esperando indefinidamente (un workflow atascado, una función que cuesta dinero y no responde). Con timeout, el fallo es rápido y diagnosticable."
+  },
+  {
+    "id": "dev-idempotencia",
+    "topic": "Desarrollo",
+    "question": "¿Qué significa que una operación sea idempotente y por qué importa en un webhook?",
+    "answer": "Repetirla produce el mismo resultado que hacerla una vez. Telegram reintenta el webhook si no recibe un 200, así que el mismo mensaje puede llegar dos veces; el código debe tolerarlo sin duplicar efectos."
+  }
+]

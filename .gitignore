@@ -1,0 +1,26 @@
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfplan
+terraform/tfplan
+terraform/terraform.tfvars
+terraform/*.auto.tfvars
+terraform/backend_ci.tf
+terraform/crash.log
+# Conviene versionar terraform/.terraform.lock.hcl (NO lo ignores)
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Azure Functions local
+app/local.settings.json
+.python_packages/
+
+# Varios
+app.zip
+.env
+.DS_Store

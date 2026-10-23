@@ -1,0 +1,76 @@
+name: Plan
+
+# Muestra qué cambiaría Terraform, sin aplicar nada. En un pull request que toque
+# terraform/ corre solo; también se puede lanzar a mano desde main.
+on:
+  pull_request:
+    paths: ["terraform/**", "scripts/write-backend.sh", ".github/workflows/plan.yml"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # para pedir el token OIDC a GitHub
+  contents: read
+
+env:
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  TFSTATE_RG: ${{ vars.TFSTATE_RG }}
+  TFSTATE_SA: ${{ vars.TFSTATE_SA }}
+  TF_VAR_resource_group_name: ${{ vars.APP_RG }}
+  TF_VAR_owner_telegram_id: ${{ vars.OWNER_TELEGRAM_ID }}
+  TF_VAR_admin_object_id: ${{ vars.ADMIN_OBJECT_ID }}
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  plan:
+    # Los PR desde forks no reciben token OIDC (por diseño de GitHub): se omiten.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar que la configuración llegó
+        run: >
+          bash scripts/check-config.sh ARM_TENANT_ID ARM_SUBSCRIPTION_ID ARM_CLIENT_ID
+          TFSTATE_RG TFSTATE_SA TF_VAR_resource_group_name TF_VAR_owner_telegram_id
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Estado remoto
+        run: bash scripts/write-backend.sh
+
+      - name: Formato
+        working-directory: terraform
+        run: terraform fmt -check -recursive -diff
+
+      - name: Init y validate
+        working-directory: terraform
+        run: |
+          terraform init -input=false
+          terraform validate
+
+      # -lock=false: es solo lectura y no debe bloquear un despliegue en curso.
+      - name: Plan
+        working-directory: terraform
+        run: terraform plan -input=false -lock=false -no-color | tee "$RUNNER_TEMP/plan.txt"
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo '## Resultado de `terraform plan`'
+            echo '```text'
+            head -c 60000 "$RUNNER_TEMP/plan.txt" 2>/dev/null || echo "(sin salida)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

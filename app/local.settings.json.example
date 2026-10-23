@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "TELEGRAM_BOT_TOKEN": "pon-aqui-el-token-solo-en-local",
+    "TELEGRAM_WEBHOOK_SECRET": "cualquier-texto-largo-solo-en-local",
+    "OWNER_TELEGRAM_ID": "123456789",
+    "STUDY_TIMEZONE": "America/Bogota",
+    "DAILY_SCHEDULE": "0 0 14 * * *"
+  }
+}
