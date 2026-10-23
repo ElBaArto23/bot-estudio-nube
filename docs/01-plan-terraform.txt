@@ -1,0 +1,168 @@
+Acquiring state lock. This may take a few moments...
+data.azurerm_client_config.current: Reading...
+data.azurerm_resource_group.main: Reading...
+data.azurerm_client_config.current: Read complete after 0s [id=Y2xpZW50Q29uZmlncy9jbGllbnRJZD0wNGIwNzc5NS04ZGRiLTQ2MWEtYmJlZS0wMmY5ZTFiZjdiNDY7b2JqZWN0SWQ9ZDM4MjFlZWEtOWU0Ni00OTU5LWI1YjEtNWYzMzJmYTIwNTMyO3N1YnNjcmlwdGlvbklkPWFiMTllM2M0LWU0YmEtNGYwYy05NDc0LTRmNzFmYjMzMTg1YTt0ZW5hbnRJZD1mODU3MGJlMC04MTJmLTQzMDctYTllNS0xMzM4ZjNiMTA0M2U=]
+data.azurerm_resource_group.main: Read complete after 0s [id=/subscriptions/ab19e3c4-e4ba-4f0c-9474-4f71fb33185a/resourceGroups/estudio-rg]
+azurerm_key_vault.main: Refreshing state... [id=/subscriptions/ab19e3c4-e4ba-4f0c-9474-4f71fb33185a/resourceGroups/estudio-rg/providers/Microsoft.KeyVault/vaults/kv-botestudio-f8b244]
+azurerm_log_analytics_workspace.main: Refreshing state... [id=/subscriptions/ab19e3c4-e4ba-4f0c-9474-4f71fb33185a/resourceGroups/estudio-rg/providers/Microsoft.OperationalInsights/workspaces/log-botestudio-f8b244]
+azurerm_storage_account.main: Refreshing state... [id=/subscriptions/ab19e3c4-e4ba-4f0c-9474-4f71fb33185a/resourceGroups/estudio-rg/providers/Microsoft.Storage/storageAccounts/stbotestudiof8b244]
+azurerm_application_insights.main: Refreshing state... [id=/subscriptions/ab19e3c4-e4ba-4f0c-9474-4f71fb33185a/resourceGroups/estudio-rg/providers/Microsoft.Insights/components/appi-botestudio-f8b244]
+azurerm_role_assignment.admin_secrets[0]: Refreshing state... [id=/subscriptions/ab19e3c4-e4ba-4f0c-9474-4f71fb33185a/resourceGroups/estudio-rg/providers/Microsoft.KeyVault/vaults/kv-botestudio-f8b244/providers/Microsoft.Authorization/roleAssignments/4af2903e-bc3a-fdac-2b42-25d8c0cd3a1d]
+azurerm_storage_table.study: Refreshing state... [id=https://stbotestudiof8b244.table.core.windows.net/Tables('estudio')]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # azurerm_linux_function_app.bot will be created
+  + resource "azurerm_linux_function_app" "bot" {
+      + app_settings                                   = {
+          + "DAILY_SCHEDULE"                 = "0 0 14 * * *"
+          + "ENABLE_ORYX_BUILD"              = "true"
+          + "OWNER_TELEGRAM_ID"              = "5205292909"
+          + "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+          + "STUDY_TIMEZONE"                 = "America/Bogota"
+          + "TABLES_ENDPOINT"                = "https://stbotestudiof8b244.table.core.windows.net/"
+          + "TELEGRAM_BOT_TOKEN"             = "@Microsoft.KeyVault(VaultName=kv-botestudio-f8b244;SecretName=telegram-bot-token)"
+          + "TELEGRAM_WEBHOOK_SECRET"        = "@Microsoft.KeyVault(VaultName=kv-botestudio-f8b244;SecretName=telegram-webhook-secret)"
+        }
+      + builtin_logging_enabled                        = true
+      + client_certificate_enabled                     = false
+      + client_certificate_mode                        = "Optional"
+      + content_share_force_disabled                   = false
+      + custom_domain_verification_id                  = (sensitive value)
+      + daily_memory_time_quota                        = 0
+      + default_hostname                               = (known after apply)
+      + enabled                                        = true
+      + ftp_publish_basic_authentication_enabled       = true
+      + functions_extension_version                    = "~4"
+      + hosting_environment_id                         = (known after apply)
+      + https_only                                     = true
+      + id                                             = (known after apply)
+      + key_vault_reference_identity_id                = (known after apply)
+      + kind                                           = (known after apply)
+      + location                                       = "centralus"
+      + name                                           = "func-botestudio-f8b244"
+      + outbound_ip_address_list                       = (known after apply)
+      + outbound_ip_addresses                          = (known after apply)
+      + possible_outbound_ip_address_list              = (known after apply)
+      + possible_outbound_ip_addresses                 = (known after apply)
+      + public_network_access_enabled                  = true
+      + resource_group_name                            = "estudio-rg"
+      + service_plan_id                                = (known after apply)
+      + site_credential                                = (sensitive value)
+      + storage_account_access_key                     = (sensitive value)
+      + storage_account_name                           = "stbotestudiof8b244"
+      + storage_uses_managed_identity                  = false
+      + tags                                           = {
+          + "gestionado-por" = "terraform"
+          + "proyecto"       = "bot-estudio"
+        }
+      + virtual_network_backup_restore_enabled         = false
+      + vnet_image_pull_enabled                        = false
+      + webdeploy_publish_basic_authentication_enabled = true
+      + zip_deploy_file                                = (known after apply)
+
+      + identity {
+          + principal_id = (known after apply)
+          + tenant_id    = (known after apply)
+          + type         = "SystemAssigned"
+        }
+
+      + site_config {
+          + always_on                               = false
+          + app_scale_limit                         = (known after apply)
+          + application_insights_connection_string  = (sensitive value)
+          + container_registry_use_managed_identity = false
+          + default_documents                       = (known after apply)
+          + detailed_error_logging_enabled          = (known after apply)
+          + elastic_instance_minimum                = (known after apply)
+          + ftps_state                              = "Disabled"
+          + http2_enabled                           = false
+          + ip_restriction_default_action           = "Allow"
+          + linux_fx_version                        = (known after apply)
+          + load_balancing_mode                     = "LeastRequests"
+          + managed_pipeline_mode                   = "Integrated"
+          + minimum_tls_version                     = "1.2"
+          + pre_warmed_instance_count               = (known after apply)
+          + remote_debugging_enabled                = false
+          + remote_debugging_version                = (known after apply)
+          + scm_ip_restriction_default_action       = "Allow"
+          + scm_minimum_tls_version                 = "1.2"
+          + scm_type                                = (known after apply)
+          + scm_use_main_ip_restriction             = false
+          + use_32_bit_worker                       = false
+          + vnet_route_all_enabled                  = false
+          + websockets_enabled                      = false
+          + worker_count                            = (known after apply)
+
+          + application_stack {
+              + python_version              = "3.11"
+              + use_dotnet_isolated_runtime = false
+            }
+        }
+    }
+
+  # azurerm_role_assignment.function_reads_secrets will be created
+  + resource "azurerm_role_assignment" "function_reads_secrets" {
+      + condition_version                = (known after apply)
+      + id                               = (known after apply)
+      + name                             = (known after apply)
+      + principal_id                     = (known after apply)
+      + principal_type                   = (known after apply)
+      + role_definition_id               = (known after apply)
+      + role_definition_name             = "Key Vault Secrets User"
+      + scope                            = "/subscriptions/ab19e3c4-e4ba-4f0c-9474-4f71fb33185a/resourceGroups/estudio-rg/providers/Microsoft.KeyVault/vaults/kv-botestudio-f8b244"
+      + skip_service_principal_aad_check = (known after apply)
+    }
+
+  # azurerm_role_assignment.function_uses_tables will be created
+  + resource "azurerm_role_assignment" "function_uses_tables" {
+      + condition_version                = (known after apply)
+      + id                               = (known after apply)
+      + name                             = (known after apply)
+      + principal_id                     = (known after apply)
+      + principal_type                   = (known after apply)
+      + role_definition_id               = (known after apply)
+      + role_definition_name             = "Storage Table Data Contributor"
+      + scope                            = "/subscriptions/ab19e3c4-e4ba-4f0c-9474-4f71fb33185a/resourceGroups/estudio-rg/providers/Microsoft.Storage/storageAccounts/stbotestudiof8b244"
+      + skip_service_principal_aad_check = (known after apply)
+    }
+
+  # azurerm_service_plan.bot will be created
+  + resource "azurerm_service_plan" "bot" {
+      + id                              = (known after apply)
+      + kind                            = (known after apply)
+      + location                        = "centralus"
+      + maximum_elastic_worker_count    = (known after apply)
+      + name                            = "asp-botestudio-f8b244"
+      + os_type                         = "Linux"
+      + per_site_scaling_enabled        = false
+      + premium_plan_auto_scale_enabled = false
+      + reserved                        = (known after apply)
+      + resource_group_name             = "estudio-rg"
+      + sku_name                        = "Y1"
+      + tags                            = {
+          + "gestionado-por" = "terraform"
+          + "proyecto"       = "bot-estudio"
+        }
+      + worker_count                    = (known after apply)
+    }
+
+Plan: 4 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + function_app_hostname = (known after apply)
+  + webhook_url           = (known after apply)
+
+Warning: Argument is deprecated
+
+  with azurerm_storage_table.study,
+  on main.tf line 53, in resource "azurerm_storage_table" "study":
+  53:   storage_account_name = azurerm_storage_account.main.name
+
+the `storage_account_name` property has been deprecated in favour of
+`storage_account_id` and will be removed in version 5.0 of the Provider.
+Releasing state lock. This may take a few moments...

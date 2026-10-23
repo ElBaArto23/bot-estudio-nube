@@ -63,6 +63,18 @@ jobs:
         working-directory: terraform
         run: terraform destroy -input=false -auto-approve
 
+      # Application Insights crea por su cuenta este grupo de acciones; Terraform no
+      # lo conoce y por eso no lo borra. Lo quitamos para que el grupo quede vacío.
+      - name: Borrar el grupo de acciones automático de Application Insights
+        run: |
+          nombre="Application Insights Smart Detection"
+          if az monitor action-group show --resource-group "$TF_VAR_resource_group_name" --name "$nombre" >/dev/null 2>&1; then
+            az monitor action-group delete --resource-group "$TF_VAR_resource_group_name" --name "$nombre"
+            echo "Borrado: $nombre"
+          else
+            echo "No existe: $nombre"
+          fi
+
       # Mismo hábito que en el proyecto anterior: no fiarse del "Destroy complete",
       # comprobar el estado real en Azure.
       - name: Verificar que el grupo quedó vacío

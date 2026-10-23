@@ -28,5 +28,11 @@ provider "azurerm" {
       purge_soft_delete_on_destroy    = false
       recover_soft_deleted_key_vaults = true
     }
+
+    log_analytics_workspace {
+      # Sin esto, Azure conserva el workspace 14 días en borrado suave: sigue
+      # apareciendo en el grupo y bloquea su nombre si vuelves a desplegar.
+      permanently_delete_on_destroy = true
+    }
   }
 }
