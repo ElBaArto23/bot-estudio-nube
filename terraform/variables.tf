@@ -46,7 +46,7 @@ variable "monthly_budget_usd" {
 variable "function_plan_sku" {
   description = "SKU del plan de la Function App. Y1 = consumo (casi gratis en reposo)."
   type        = string
-  default     = "Y1"
+  default     = "B1"
 }
 
 variable "daily_schedule" {
